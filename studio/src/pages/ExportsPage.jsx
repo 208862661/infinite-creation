@@ -3,6 +3,7 @@ import { CaptionsOff, Download, Film, Play, RefreshCw, Subtitles, Trash2 } from 
 import { api } from '../lib/api.js';
 import { exportTitle, fmtBytes, fmtTime, withSession } from '../lib/format.js';
 import { Badge, Button, Checkbox, EmptyState } from '../components/ui.jsx';
+import { VideoPane } from '../components/media.jsx';
 import { Modal } from '../components/overlays.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import { useToast } from '../components/toast.jsx';
@@ -138,11 +139,11 @@ export default function ExportsPage({ projectId, readOnly = false, canExport = t
                 }
               >
                 <div className="relative aspect-video overflow-hidden bg-black/40">
-                  <video
+                  <VideoPane
                     src={withSession(f.url) + '#t=0.1'}
+                    controls={false}
                     muted
                     playsInline
-                    preload="metadata"
                     className="h-full w-full object-cover opacity-90 transition-opacity group-hover:opacity-100"
                   />
                   <button
@@ -235,7 +236,12 @@ export default function ExportsPage({ projectId, readOnly = false, canExport = t
         }
       >
         {player ? (
-          <video className="max-h-[68vh] w-full rounded-lg bg-black" controls autoPlay src={withSession(player.url)} />
+          <VideoPane
+            src={withSession(player.url)}
+            autoPlay
+            wrapClassName="relative flex w-full justify-center"
+            className="max-h-[68vh] w-full rounded-lg bg-black"
+          />
         ) : null}
       </Modal>
     </div>

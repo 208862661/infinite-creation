@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import clsx from 'clsx';
 import { FileAudio, Film, Image as ImageIcon, UploadCloud } from 'lucide-react';
 import { useDropFiles } from '../lib/hooks.js';
@@ -70,19 +70,92 @@ export function ImageLightbox({ open, onOpenChange, src, title, subtitle }) {
   );
 }
 
+// 视频右上角分辨率角标：按视频实际短边归一到最近的标准档位（与项目 VIDEO_RESOLUTIONS 一致）。
+// 元数据未就绪（dim 为空）时不渲染；非常规尺寸回退显示「宽×高」。
+const VIDEO_RES_LADDER = [['4K', 2160], ['2K', 1440], ['1080P', 1080], ['768P', 768], ['720P', 720], ['540P', 540], ['480P', 480], ['360P', 360]];
+
+export function videoResolutionLabel(width, height) {
+  const short = Math.min(Number(width) || 0, Number(height) || 0);
+  if (!short) return '';
+  const hit = VIDEO_RES_LADDER.find(([, h]) => short >= h - 12);
+  return hit ? hit[0] : width + '×' + height;
+}
+
+// 图片分辨率角标：按总像素归到项目档位（1K≈1MP / 2K≈4MP / 4K≈8.3MP），
+// 落在档位区间外回退显示「宽×高」。
+const IMAGE_RES_TIERS = [['1K', 1, 0.8, 1.6], ['2K', 4, 3.2, 6.4], ['4K', 8.3, 6.6, 13.3]];
+
+export function imageResolutionLabel(width, height) {
+  const w = Number(width) || 0;
+  const h = Number(height) || 0;
+  if (!w || !h) return '';
+  const mp = (w * h) / 1e6;
+  const hit = IMAGE_RES_TIERS.find(([, , lo, hi]) => mp >= lo && mp <= hi);
+  return hit ? hit[0] : w + '×' + h;
+}
+
+// 右上角分辨率角标。label 为空时不渲染。
+export function ResolutionBadge({ label, className = 'right-2 top-2' }) {
+  if (!label) return null;
+  return (
+    <span className={clsx('pointer-events-none absolute rounded-md border border-white/10 bg-black/60 px-1.5 py-0.5 text-[10px] font-medium leading-none text-white/85 backdrop-blur', className)}>
+      {label}
+    </span>
+  );
+}
+
+// 带分辨率角标的视频播放器（角标在右上角，无分辨率信息时不显示）。
+export function VideoPane({ src, className, controls = true, muted = false, playsInline = false, autoPlay = false, wrapClassName = 'relative h-full w-full' }) {
+  const [dim, setDim] = useState(null);
+  const label = dim ? videoResolutionLabel(dim.w, dim.h) : '';
+  return (
+    <div className={wrapClassName}>
+      <video
+        className={className}
+        src={src}
+        controls={controls}
+        muted={muted}
+        playsInline={playsInline}
+        autoPlay={autoPlay}
+        preload="metadata"
+        onLoadedMetadata={(e) => setDim({ w: e.currentTarget.videoWidth, h: e.currentTarget.videoHeight })}
+      />
+      <ResolutionBadge label={label} />
+    </div>
+  );
+}
+
+// 带分辨率角标的图片（角标在右上角，无分辨率信息时不显示）。
+export function ImagePane({ src, alt = '', className, onClick }) {
+  const [dim, setDim] = useState(null);
+  const label = dim ? imageResolutionLabel(dim.w, dim.h) : '';
+  return (
+    <span className="relative block h-full w-full">
+      <img
+        className={className}
+        src={src}
+        alt={alt}
+        loading="lazy"
+        onClick={onClick}
+        onLoad={(e) => setDim({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
+      />
+      <ResolutionBadge label={label} />
+    </span>
+  );
+}
+
 // 素材缩略：视频 > 图片 > 音频 > 占位。样式交给调用方控制宽高。
 export function AssetMedia({ projectId, asset, className, onPreview, showAudio = true }) {
   const common = clsx('h-full w-full object-cover', className);
   if (asset?.video_path) {
-    return <video className={common} src={fileUrl(projectId, asset.video_path)} controls preload="metadata" />;
+    return <VideoPane src={fileUrl(projectId, asset.video_path)} className={common} />;
   }
   if (asset?.image_path) {
     return (
-      <img
+      <ImagePane
         className={clsx(common, onPreview && 'cursor-zoom-in')}
         src={fileUrl(projectId, asset.image_path)}
         alt={asset.name || ''}
-        loading="lazy"
         onClick={onPreview}
       />
     );

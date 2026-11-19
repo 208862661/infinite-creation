@@ -6,7 +6,7 @@ import { Download, FileAudio, Maximize2, RefreshCw, Square, Trash2, X } from 'lu
 import { api } from '../lib/api.js';
 import { fileUrl, STATUS_TEXT } from '../lib/format.js';
 import { Button, EmptyState, Spinner, StatusPill } from './ui.jsx';
-import { ImageLightbox } from './media.jsx';
+import { ImageLightbox, ImagePane, VideoPane } from './media.jsx';
 import { Modal } from './overlays.jsx';
 import { useToast } from './toast.jsx';
 
@@ -178,13 +178,13 @@ export function MediaCard({ projectId, asset, kind, activeJobId, onRetry, onChan
               aria-label={'放大查看 ' + asset.name}
               className="group/img relative flex h-full w-full items-center justify-center"
             >
-              <img src={url} alt={asset.name} loading="lazy" className="h-full w-full cursor-zoom-in object-contain" />
+              <ImagePane src={url} alt={asset.name} className="h-full w-full cursor-zoom-in object-contain" />
               <span className="pointer-events-none absolute bottom-2 right-2 flex items-center gap-1 rounded-md border border-white/10 bg-black/55 px-1.5 py-1 text-[10px] text-white/85 opacity-0 backdrop-blur transition-opacity group-hover/img:opacity-100">
                 <Maximize2 size={10} /> 查看大图
               </span>
             </button>
           ) : kind === 'video' ? (
-            <video src={url} controls preload="metadata" className="h-full w-full bg-black object-contain" />
+            <VideoPane src={url} className="h-full w-full bg-black object-contain" />
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center gap-2 px-3">
               <FileAudio size={18} className="text-[var(--fg-3)]" />
